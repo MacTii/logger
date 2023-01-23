@@ -25,26 +25,30 @@ void dump_state_handler() {
     struct tm *time_info = localtime(&curr_time);
     strftime(dump_file_name, sizeof(dump_file_name), "dump-%Y-%m-%d.log", time_info);
 
-    //open dump file
+    // open dump file
     FILE *dump_file = fopen(dump_file_name, "a");
     if (dump_file == NULL) {
         fprintf(stderr, "Error opening dump file\n");
         return;
     }
 
-    //write current application state to dump file
-    fprintf(dump_file, "Current state of the application:\n");
+    pthread_mutex_lock(&logger_dump_file_mutex);
 
-    //write the current state of the application here
+    // write current application state to dump file
+    fprintf(dump_file, "NO DATA AVAILABLE!\n");
+
+    pthread_mutex_unlock(&logger_file_mutex);
+
+    // write the current state of the application here
     fclose(dump_file);
 }
 
 void log_enable_handler() {
     logger_enabled = !logger_enabled;
     if (logger_enabled) {
-        log_message(MIN, "Logging disabled");
+        log_message(logger_severity_lvl, "Logging disabled");
     } else {
-        log_message(MIN, "Logging enabled");
+        log_message(logger_severity_lvl, "Logging enabled");
     }
 }
 
@@ -55,7 +59,7 @@ void log_level_handler() {
         return;
     }
     logger_severity_lvl = sv_lvl;
-    log_message(STANDARD, "Log level changed");
+    log_message(logger_severity_lvl, "Log level changed");
 }
 
 struct tm *datetime_struct() {
@@ -68,7 +72,7 @@ int set_log(unsigned int sv, const char *s) {
     if (logger_severity_lvl < sv)
         return 1;
 
-    else if (!logger_enabled)
+    else if (!logger_enabled) // stop logging and application when log_enabled is false
         return 2;
 
     FILE *f = fopen(LOG_FILENAME, "a");
@@ -117,15 +121,20 @@ void log_message(enum log_level_t message_level, char *message) {
         return;
     }
 
-    pthread_mutex_lock(&logger_file_mutex);
     FILE *f = fopen(LOG_FILENAME, "a");
     if (f == NULL) {
         perror("Problem with file");
         return;
     }
+
+    pthread_mutex_lock(&logger_file_mutex);
+
+    // save log message
     fprintf(f, "%s\n", message);
-    fclose(f);
+
     pthread_mutex_unlock(&logger_file_mutex);
+
+    fclose(f);
 }
 
 void *log_loop(void *arg) {
@@ -150,11 +159,17 @@ int init_logger() {
         return -1;
     }
 
-    log_message(MIN, "Logger initialized");
+    if (pthread_mutex_init(&logger_dump_file_mutex, NULL) != 0) {
+        fprintf(stderr, "Error initializing dump file mutex\n");
+        return -1;
+    }
+
+    log_message(logger_severity_lvl, "Logger initialized");
 
     atomic_store(&sig_ch, 0);
 
     struct sigaction act;
+
     sigset_t set;
     sigfillset(&set);
 
@@ -180,6 +195,7 @@ int init_logger() {
 }
 
 void close_logger() {
-    log_message(MIN, "Logger closed");
+    log_message(logger_severity_lvl, "Logger closed");
     pthread_mutex_destroy(&logger_file_mutex);
+    pthread_mutex_destroy(&logger_dump_file_mutex);
 }

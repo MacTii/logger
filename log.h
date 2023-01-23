@@ -23,6 +23,7 @@ volatile static sig_atomic_t logger_enabled = 1;
 volatile static sig_atomic_t logger_severity_lvl = MIN;
 
 static pthread_mutex_t logger_file_mutex;
+static pthread_mutex_t logger_dump_file_mutex;
 
 atomic_int sig_ch;
 
