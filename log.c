@@ -1,5 +1,19 @@
 #include "log.h"
 
+static sig_atomic_t init_state = 0;
+
+volatile static sig_atomic_t flag_signo_1 = 0;
+volatile static sig_atomic_t flag_signo_2 = 0;
+volatile static sig_atomic_t flag_signo_3 = 0;
+
+volatile static sig_atomic_t logger_enabled = 1;
+volatile static sig_atomic_t logger_severity_lvl = MIN;
+
+static pthread_mutex_t logger_file_mutex;
+static pthread_mutex_t logger_dump_file_mutex;
+
+atomic_int sig_ch;
+
 void handler_signo_1(int signo, siginfo_t *info, void *other) { // dump_state_handler
     flag_signo_1 = 1;
     atomic_store(&sig_ch, info->si_value.sival_int);
@@ -63,8 +77,8 @@ void log_level_handler() {
 }
 
 struct tm *datetime_struct() {
-    time_t ltime;
-    ltime = time(NULL);
+    // time_t ltime;
+    time_t ltime = time(NULL);
     return localtime(&ltime);
 }
 
@@ -154,6 +168,12 @@ void *log_loop(void *arg) {
 }
 
 int init_logger() {
+    if(init_state++ != 0)
+        return -1;
+
+    // application code here
+    log_message(logger_severity_lvl, "Application started");
+
     if (pthread_mutex_init(&logger_file_mutex, NULL) != 0) {
         fprintf(stderr, "Error initializing log file mutex\n");
         return -1;

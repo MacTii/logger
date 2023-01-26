@@ -11,21 +11,9 @@
 #include <stdatomic.h>
 #include <pthread.h>
 
-enum log_level_t {MIN = 1, STANDARD, MAX};
-
 #define LOG_FILENAME "application.log"
 
-volatile static sig_atomic_t flag_signo_1 = 0;
-volatile static sig_atomic_t flag_signo_2 = 0;
-volatile static sig_atomic_t flag_signo_3 = 0;
-
-volatile static sig_atomic_t logger_enabled = 1;
-volatile static sig_atomic_t logger_severity_lvl = MIN;
-
-static pthread_mutex_t logger_file_mutex;
-static pthread_mutex_t logger_dump_file_mutex;
-
-atomic_int sig_ch;
+enum log_level_t {MIN = 1, STANDARD, MAX};
 
 void handler_signo_1(int signo, siginfo_t *info, void *other);
 

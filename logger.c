@@ -8,9 +8,6 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    // application code here
-    log_message(logger_severity_lvl, "Application started");
-
     while(1)
     {
         if (set_log(1, "Message for log severity MIN") == 2) {
